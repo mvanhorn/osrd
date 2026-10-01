@@ -83,6 +83,12 @@ enum AuthzError {
     #[error("Unknown user identities '{}'", identities.iter().format(", "))]
     #[editoast_error(status = 404)]
     UnknownIdentities { identities: HashSet<String> },
+    #[error("User identity '{identity}' already exists")]
+    #[editoast_error(status = 409)]
+    IdentityAlreadyExists { identity: String },
+    #[error("User must have at least one identity")]
+    #[editoast_error(status = 422)]
+    EmptyIdentities,
     #[error("Incompatible grant {grant} for resource {resource_type}")]
     #[editoast_error(status = 422)]
     IncompatibleGrant {
@@ -1013,6 +1019,107 @@ pub(in crate::views) async fn list_groups(
     groups.sort_by_key(|g| g.id);
 
     Ok(Json(groups))
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+#[serde(rename_all = "lowercase")]
+pub(in crate::views) struct CreateUserForm {
+    name: String,
+    identities: Vec<String>,
+    groups: Vec<i64>,
+    roles: Vec<Role>,
+}
+
+#[editoast_derive::route(Role::Admin)]
+#[utoipa::path(
+    put,
+    path = "",
+    tag = "authz",
+    request_body(
+        content = inline(CreateUserForm),
+        description = "User to create, with its identities, groups, and roles",
+    ),
+    responses((status = 201, description = "User created", body = inline(UserInfo))),
+)]
+pub(in crate::views) async fn create_user(
+    State(AppState {
+        db_pool, openfga, ..
+    }): State<AppState>,
+    Extension(authn_state): Extension<crate::authentication::State>,
+    Json(CreateUserForm {
+        name,
+        identities, // TODO PR: switch to HashSet ?
+        groups,
+        roles, // TODO PR: switch to HashSet ?
+    }): Json<CreateUserForm>,
+) -> Result<(StatusCode, Json<UserInfo>)> {
+    // TODO PR: use a Vec1 or something instead of a Vec in CreateUserForm to get errors when
+    // deserializing ?
+    if identities.is_empty() {
+        return Err(AuthzError::EmptyIdentities.into());
+    }
+    // Check that the input groups exist (if any):
+    let (groups, missing): (Vec<Group>, _) =
+        Group::retrieve_batch(&mut db_pool.get().await?, groups).await?;
+    if let Some(subject_id) = missing.into_iter().next() {
+        // TODO PR replace with new UnknownGroup variant
+        return Err(AuthzError::UnknownSubject { subject_id }.into());
+    }
+
+    // Check that input identities do not already exist:
+    let users = UserWithIdentities::stream_by_identity(db_pool.get().await?, &identities)
+        .await?
+        .try_collect::<Vec<_>>() // TODO PR: only wait for the first element
+        .await?;
+    if let Some(user) = users.iter().next() {
+        let requested_identities = identities.iter().collect::<HashSet<_>>();
+        let conflicting_identity = user
+            .identities
+            .iter()
+            .find(|identity| requested_identities.contains(identity))
+            .expect("we already filtered users by matching identity");
+        // TODO PR: add the conflicting existing user in the error
+        return Err(AuthzError::IdentityAlreadyExists {
+            identity: conflicting_identity.clone(),
+        }
+        .into());
+    }
+
+    // Create the user in the DB:
+    let user = match User::register(db_pool.get().await?, identities.clone(), name.clone()).await {
+        Ok(user) => user,
+        Err(models::authn::user::AddIdentitiesError::DuplicateIdentity(identity)) => {
+            return Err(AuthzError::IdentityAlreadyExists { identity }.into());
+        }
+        Err(models::authn::user::AddIdentitiesError::Error(err)) => return Err(err.into()),
+    };
+
+    let authz_user = authz::User(user.id);
+    let roles = HashSet::from_iter(roles);
+
+    // Associate the user to its groups in OpenFGA and add the provided roles to the user:
+    let add_groups_op = v2::Protected::from_iter(
+        groups
+            .iter()
+            .map(|group| v2::add_members(authz::Group(group.id), HashSet::from([authz_user]))),
+    );
+    let add_roles_op = v2::add_roles(authz::Subject::user(authz_user), roles.clone());
+
+    add_roles_op
+        .zip(add_groups_op)
+        .run::<AuthorizationError, _>(&authn_state.authorizer(&openfga))
+        .await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(UserInfo {
+            id: user.id,
+            name,
+            identities,
+            roles,
+            groups: HashSet::from_iter(groups),
+        }),
+    ))
 }
 
 #[cfg(test)]
@@ -3856,6 +3963,129 @@ mod tests {
             .skip_authz()
             .await
             .assert_status_unauthorized();
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn create_user() {
+        // TODO PR: stop duplicating magic strings everywhere
+        let app = test_app!().build();
+        let conn = app.db_pool().get_ok();
+
+        let admin = app
+            .user("admin", "Admin")
+            .with_roles([Role::Admin])
+            .create()
+            .await;
+        let group_1 = app.group("group_1").create().await;
+        let group_2 = app.group("group_2").create().await;
+
+        let created_user = app
+            .put("/authz/users")
+            .by_user(admin.as_ref())
+            .json(&json!({
+                "name": "Created User",
+                "identities": ["created_user", "created_user_2"],
+                "groups": [group_1.id, group_2.id],
+                "roles": [Role::Stdcm, Role::OperationalStudies],
+            }))
+            .await
+            .assert_status(StatusCode::CREATED)
+            .json::<UserInfo>();
+
+        assert_eq!(created_user.name, "Created User");
+        assert_eq!(created_user.identities, ["created_user", "created_user_2"]);
+        assert_eq!(
+            created_user.roles,
+            HashSet::from([Role::Stdcm, Role::OperationalStudies])
+        );
+        assert_eq!(
+            created_user.groups,
+            HashSet::from([
+                Group {
+                    id: group_1.id,
+                    name: group_1.info.name,
+                },
+                Group {
+                    id: group_2.id,
+                    name: group_2.info.name,
+                },
+            ])
+        );
+
+        // Check that the tuples of the user groups and roles have been created in openfga:
+
+        let openfga = app.openfga();
+        let user_roles = openfga
+            .subject_roles(&authz::Subject::user(created_user.id))
+            .await;
+        assert_eq!(
+            user_roles,
+            HashSet::from([Role::Stdcm, Role::OperationalStudies])
+        );
+
+        let user_groups = openfga.user_groups(authz::User(created_user.id)).await;
+        assert_eq!(
+            user_groups,
+            HashSet::from([authz::Group(group_1.id), authz::Group(group_2.id)])
+        );
+
+        // Check that the user and its identities have been correctly persisted in Postgres:
+        // - There should be a single user matching all the provided identities.
+        // - The it should be the user we just created by calling the create endpoint.
+
+        // TODO PR:
+        // - check that all the input identities are associated with the created user ?
+        // - use retrieve_by_identity instead of stream_by_identity ?
+
+        let users = UserWithIdentities::stream_by_identity(conn.clone(), &created_user.identities)
+            .await
+            .unwrap()
+            .try_collect::<Vec<_>>()
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|user_with_identities| user_with_identities.user)
+            .collect_vec();
+
+        assert_eq!(
+            users,
+            vec![models::User {
+                id: created_user.id,
+                name: "Created User".to_string()
+            }]
+        );
+    }
+
+    // TODO PR: write more tests
+    // - only admins can call the create_user endpoint
+    // - non-existent input groups are rejected
+    // - method is not idempotent: creating the same user twice should fail on the second run ?
+    //      => already covered in the prior tests though, and maybe it is not useful to test that an
+    //      endpoint ** does not ** have a given characteristic (idempotency)
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn create_user_duplicate_identity() {
+        let app = test_app!().build();
+        let admin = app
+            .user("admin", "Admin")
+            .with_roles([Role::Admin])
+            .create()
+            .await;
+
+        // TODO PR: rewrite differently. create two users with the same identity:
+        // - the first user creation should succeed.
+        // - the second user create should fail with a HTTP 409 error.
+
+        app.put("/authz/users")
+            .by_user(admin.as_ref())
+            .json(&json!({
+                "name": "Created User",
+                "identities": [admin.info.identities[0]],
+                "groups": [],
+                "roles": [],
+            }))
+            .await
+            .assert_status_conflict();
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
