@@ -8,7 +8,8 @@ import {
 import { MAIN_API } from 'config/config';
 import type { RootState } from 'reducers';
 import { getRailwayManagerInterfaceUrl } from 'reducers/main/mainSelector';
-import { getImpersonatedUser } from 'reducers/user/userSelectors';
+import { type UserPreferences } from 'reducers/user';
+import { getImpersonatedUser, getUserPreferences } from 'reducers/user/userSelectors';
 
 export type ApiError = {
   data: {
@@ -19,10 +20,7 @@ export type ApiError = {
   status: number;
 };
 
-const prepareHeadersWithImpersonate = async (
-  headers: Headers,
-  api: { getState: () => unknown }
-) => {
+const prepareHeadersWithImpersonate = (headers: Headers, api: { getState: () => unknown }) => {
   const impersonatedUser = getImpersonatedUser(api.getState() as RootState);
 
   if (impersonatedUser) {
@@ -34,12 +32,26 @@ const prepareHeadersWithImpersonate = async (
   return headers;
 };
 
+const prepareHeadersWithUserPreferences = (headers: Headers, api: { getState: () => unknown }) => {
+  const userPreferences = getUserPreferences(api.getState() as RootState);
+  for (const flag in userPreferences) {
+    if (userPreferences[flag as keyof UserPreferences]) {
+      headers.append('X-feature-flags', flag);
+    }
+  }
+};
+
+const setHeaders = async (headers: Headers, api: { getState: () => unknown }) => {
+  prepareHeadersWithImpersonate(headers, api);
+  prepareHeadersWithUserPreferences(headers, api);
+};
+
 // initialize an empty api service that we'll inject endpoints into later as needed
 export const baseEditoastApi = createApi({
   reducerPath: 'editoastApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${MAIN_API.proxy_editoast}/`,
-    prepareHeaders: prepareHeadersWithImpersonate,
+    prepareHeaders: setHeaders,
   }) as BaseQueryFn<FetchArgs, unknown, ApiError>,
   endpoints: () => ({}),
 });
@@ -60,7 +72,7 @@ const dynamicBaseQuery: BaseQueryFn<FetchArgs, unknown, ApiError> = (async (
   const state = api.getState() as RootState;
   const baseUrl = getRailwayManagerInterfaceUrl(state);
 
-  const rawBaseQuery = fetchBaseQuery({ baseUrl, prepareHeaders: prepareHeadersWithImpersonate });
+  const rawBaseQuery = fetchBaseQuery({ baseUrl, prepareHeaders: setHeaders });
 
   const result = await rawBaseQuery(args, api, extraOptions);
   return result;
