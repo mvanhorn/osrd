@@ -8,7 +8,6 @@ import {
 import { MAIN_API } from 'config/config';
 import type { RootState } from 'reducers';
 import { getRailwayManagerInterfaceUrl } from 'reducers/main/mainSelector';
-import { type UserPreferences } from 'reducers/user';
 import { getImpersonatedUser, getUserPreferences } from 'reducers/user/userSelectors';
 
 export type ApiError = {
@@ -34,14 +33,15 @@ const prepareHeadersWithImpersonate = (headers: Headers, api: { getState: () => 
 
 const prepareHeadersWithUserPreferences = (headers: Headers, api: { getState: () => unknown }) => {
   const userPreferences = getUserPreferences(api.getState() as RootState);
-  for (const flag in userPreferences) {
-    if (userPreferences[flag as keyof UserPreferences]) {
+  for (const [flag, value] of Object.entries(userPreferences)) {
+    if (flag === 'safeWord') continue;
+    if (value) {
       headers.append('X-feature-flags', flag);
     }
   }
 };
 
-const setHeaders = async (headers: Headers, api: { getState: () => unknown }) => {
+const prepareHeaders = async (headers: Headers, api: { getState: () => unknown }) => {
   prepareHeadersWithImpersonate(headers, api);
   prepareHeadersWithUserPreferences(headers, api);
 };
@@ -51,7 +51,7 @@ export const baseEditoastApi = createApi({
   reducerPath: 'editoastApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${MAIN_API.proxy_editoast}/`,
-    prepareHeaders: setHeaders,
+    prepareHeaders: prepareHeaders,
   }) as BaseQueryFn<FetchArgs, unknown, ApiError>,
   endpoints: () => ({}),
 });
@@ -72,7 +72,7 @@ const dynamicBaseQuery: BaseQueryFn<FetchArgs, unknown, ApiError> = (async (
   const state = api.getState() as RootState;
   const baseUrl = getRailwayManagerInterfaceUrl(state);
 
-  const rawBaseQuery = fetchBaseQuery({ baseUrl, prepareHeaders: setHeaders });
+  const rawBaseQuery = fetchBaseQuery({ baseUrl, prepareHeaders: prepareHeaders });
 
   const result = await rawBaseQuery(args, api, extraOptions);
   return result;
