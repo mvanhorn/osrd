@@ -34,6 +34,8 @@ import {
   type MacroNoteResponse,
   type TrainScheduleResponse,
   type TimetableType,
+  type PathItemLocation,
+  type NodeLocation,
 } from 'common/api/osrdEditoastApi';
 import { parseStartTime } from 'modules/trainSchedule/helpers/formatTrainScheduleWithDetails';
 import { isPacedTrain } from 'modules/trainSchedule/helpers/pacedTrain';
@@ -107,6 +109,15 @@ const distance = (a: [number, number], b: [number, number]): number => {
   const dx = a[0] - b[0];
   const dy = a[1] - b[1];
   return Math.hypot(dx, dy);
+};
+
+const convertPathItemLocationToNodeLocation = (
+  pathItemLocation: PathItemLocation
+): NodeLocation => {
+  if (pathItemLocation.type === 'track_offset') {
+    return pathItemLocation;
+  }
+  return pathItemLocation.operational_point;
 };
 
 type PositionedNodeIndexed = { nodeData: NodeIndexed; x: number; y: number };
@@ -227,7 +238,7 @@ const applyLayout = (state: MacroEditorState, trainSchedules: TrainScheduleRespo
   // Update positions.
   for (const n of nicerNodes) {
     const { nodeData, x: positionX, y: positionY } = n;
-    state.updateNodeDataByKey(nodeData.path_item_key, {
+    state.updateNodeDataByNodeLocation(nodeData.node_location, {
       position_x: positionX,
       position_y: positionY,
     });
@@ -315,7 +326,7 @@ export const loadAndIndexNge = async (
       if (!state.getNodeByKey(key)) {
         const macroNode: NodeIndexed = {
           ngeId: nbNodesIndexed,
-          path_item_key: key,
+          node_location: key,
           trigram:
             pathItem.location.type === 'operational_point_part_reference' &&
             pathItem.location.operational_point.type === 'domestic'
@@ -327,7 +338,7 @@ export const loadAndIndexNge = async (
           position_y: Math.trunc(nbNodesIndexed / 8),
           is_collapsed: false,
         };
-        state.indexNodeByKey(key, macroNode);
+        state.indexNodeByLocation(key, macroNode);
         nbNodesIndexed += 1;
       }
     });
@@ -337,7 +348,7 @@ export const loadAndIndexNge = async (
     .filter((op) => op !== null);
   for (const op of pathOps) {
     for (const pathKey of MacroEditorState.getPathKeys(op)) {
-      state.updateNodeDataByKey(pathKey, {
+      state.updateNodeDataByNodeLocation(pathKey, {
         full_name: op.name,
         trigram: MacroEditorState.encodeDomesticReference({ ...op, type: 'domestic' }),
         geocoord: op.geo ? { lng: op.geo.coordinates[0], lat: op.geo.coordinates[1] } : undefined,
@@ -357,7 +368,7 @@ export const loadAndIndexNge = async (
   await Promise.all(
     savedNodes.map(async (n) => {
       if (state.getNodeByKey(n.path_item_key) !== null) {
-        state.updateNodeDataByKey(n.path_item_key, { ...n, dbId: n.id });
+        state.updateNodeDataByNodeLocation(n.path_item_key, { ...n, dbId: n.id });
       } else {
         state.indexNodeByKey(n.path_item_key, { ...n, dbId: n.id, ngeId: nbNodesIndexed });
         nbNodesIndexed += 1;
