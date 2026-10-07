@@ -3966,4 +3966,58 @@ mod tests {
             .await
             .assert_status_forbidden();
     }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn list_users_test() {
+        let app = test_app!().build();
+
+        // Create an admin user
+        let admin = app
+            .user("admin", "Admin")
+            .with_roles([Role::Admin])
+            .create()
+            .await;
+
+        // Create some users
+        let user_1 = app.user("user1", "User 1").create().await;
+        let user_2 = app.user("user2", "User 2").create().await;
+
+        // List all users as admin
+        let users = app
+            .get("/authz/users")
+            .by_user(admin.as_ref())
+            .await
+            .assert_status_ok()
+            .json::<Vec<UserInfo>>();
+
+        // Verify all users are returned
+        assert!(
+            users
+                .iter()
+                .any(|u| u.id == user_1.id && u.name == "User 1")
+        );
+        assert!(
+            users
+                .iter()
+                .any(|u| u.id == user_2.id && u.name == "User 2")
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn list_users_forbidden_non_admin() {
+        let app = test_app!().build();
+
+        // Create a non-admin user
+        let user = app
+            .user("user", "User")
+            .with_roles([Role::OperationalStudies])
+            .create()
+            .await;
+
+        // Try to list users as non-admin
+        app.get("/authz/users")
+            .by_user(user.as_ref())
+            .await
+            .assert_status_forbidden();
+    }
 }
