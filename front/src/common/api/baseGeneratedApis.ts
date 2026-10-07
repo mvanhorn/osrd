@@ -51,7 +51,7 @@ export const baseEditoastApi = createApi({
   reducerPath: 'editoastApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${MAIN_API.proxy_editoast}/`,
-    prepareHeaders: prepareHeaders,
+    prepareHeaders,
   }) as BaseQueryFn<FetchArgs, unknown, ApiError>,
   endpoints: () => ({}),
 });
@@ -72,7 +72,7 @@ const dynamicBaseQuery: BaseQueryFn<FetchArgs, unknown, ApiError> = (async (
   const state = api.getState() as RootState;
   const baseUrl = getRailwayManagerInterfaceUrl(state);
 
-  const rawBaseQuery = fetchBaseQuery({ baseUrl, prepareHeaders: prepareHeaders });
+  const rawBaseQuery = fetchBaseQuery({ baseUrl, prepareHeaders });
 
   const result = await rawBaseQuery(args, api, extraOptions);
   return result;
