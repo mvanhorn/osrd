@@ -3,7 +3,7 @@ import { useCallback, useContext } from 'react';
 import { FONT_SANS } from '../../common/consts';
 import { TimeChartCanvasContext } from '../../common/context';
 import {
-  BLACK_100,
+  BLACK_ALPHA_100,
   GREY_30,
   GREY_50,
   GREY_90,
@@ -86,7 +86,7 @@ const drawGapBlock = (
   const gapWidth = gapEndX - gapStartX;
 
   if (gapWidth > 0) {
-    ctx.fillStyle = BLACK_100;
+    ctx.fillStyle = BLACK_ALPHA_100;
     ctx.fillRect(gapStartX - 0.5, bandTop - 0.5, gapWidth + 1, BLOCK_HEIGHT + 1);
   }
 };
