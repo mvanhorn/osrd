@@ -1,5 +1,5 @@
 import { FONT_MONO, FONT_SANS } from '../../../../common/consts';
-import { BLACK_ALPHA_55, BLACK_ALPHA_70, WHITE_100 } from '../../../../common/helpers/colors';
+import { BLACK_ALPHA_55, BLACK_ALPHA_70, WHITE_ALPHA_100 } from '../../../../common/helpers/colors';
 import { getCrispLineCoordinate } from '../../../../common/helpers/time';
 import type { SpaceTimeChartContextType } from '../../../../spaceTimeChart';
 import {
@@ -85,7 +85,7 @@ export const drawRemainingTrainsBox = (
   ctx.rect(x - REMAINING_TRAINS_WIDTH / 2, textY, REMAINING_TRAINS_WIDTH, REMAINING_TRAINS_HEIGHT);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = WHITE_100;
+  ctx.fillStyle = WHITE_ALPHA_100;
   ctx.font = `400 12px ${FONT_SANS}`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -124,7 +124,7 @@ export const drawOccupationZone = (
 
   if (isThroughTrain) {
     ctx.fillStyle = curveColor;
-    ctx.strokeStyle = WHITE_100;
+    ctx.strokeStyle = WHITE_ALPHA_100;
     ctx.lineWidth = OCCUPANCY_SEPARATOR_WIDTH;
     drawThroughTrain(ctx, arrivalTimePixel, y);
   } else {
@@ -163,7 +163,7 @@ export const drawOccupationZone = (
       ctx.lineWidth = border.width;
       ctx.stroke();
     } else if (!outline) {
-      ctx.strokeStyle = WHITE_100;
+      ctx.strokeStyle = WHITE_ALPHA_100;
       ctx.lineWidth = OCCUPANCY_SEPARATOR_WIDTH;
       ctx.stroke();
     }
@@ -234,7 +234,7 @@ export const drawZoneTrailingText = (
   ctx.roundRect(x, yTop, boxW, boxH, radius);
   ctx.fill();
 
-  ctx.fillStyle = WHITE_100;
+  ctx.fillStyle = WHITE_ALPHA_100;
   ctx.fillText(trailingText, x + paddingX, yCenter + 0.5);
   ctx.restore();
 };

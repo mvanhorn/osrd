@@ -1,7 +1,7 @@
 import chroma from 'chroma-js';
 
 import { FONT_MONO } from '../../../../common/consts';
-import { ERROR_60, WARNING_30, WARNING_60, WHITE_100 } from '../../../../common/helpers/colors';
+import { ERROR_60, WARNING_30, WARNING_60, WHITE_ALPHA_100 } from '../../../../common/helpers/colors';
 import type { BrokenLinking } from '../../../lib/types';
 import { drawText, truncateTextToWidth } from '../../utils';
 
@@ -19,7 +19,7 @@ export const BADGE_FONT = `600 12px ${FONT_MONO}`;
 const BADGE_REST_BACKGROUND = chroma(WARNING_30).alpha(0.4).css();
 const BADGE_REST_TEXT = WARNING_60;
 const BADGE_HIGHLIGHTED_BACKGROUND = ERROR_60;
-const BADGE_HIGHLIGHTED_TEXT = WHITE_100;
+const BADGE_HIGHLIGHTED_TEXT = WHITE_ALPHA_100;
 
 /** The name a badge shows: a long one is cut, so that a badge never outgrows its block. */
 export const getBadgeName = (ctx: CanvasRenderingContext2D, name: string) =>

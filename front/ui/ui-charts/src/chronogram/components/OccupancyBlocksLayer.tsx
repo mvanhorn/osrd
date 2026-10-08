@@ -8,7 +8,7 @@ import {
   GREY_50,
   GREY_90,
   RED_100,
-  WHITE_100,
+  WHITE_ALPHA_100,
 } from '../../common/helpers/colors';
 import { useDraw } from '../../common/hooks/useCanvas';
 import type { TimeChartContextType, DrawingFunction } from '../../common/types';
@@ -56,7 +56,7 @@ const drawStripedBlock = (ctx: CanvasRenderingContext2D, x: number, y: number, w
   ctx.rect(x, y, width, BLOCK_HEIGHT);
   ctx.clip();
 
-  ctx.fillStyle = WHITE_100;
+  ctx.fillStyle = WHITE_ALPHA_100;
   ctx.fillRect(x, y, width, BLOCK_HEIGHT);
 
   ctx.strokeStyle = RED_100;

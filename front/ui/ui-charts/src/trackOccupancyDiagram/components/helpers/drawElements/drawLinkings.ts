@@ -1,4 +1,4 @@
-import { WHITE_100 } from '../../../../common/helpers/colors';
+import { WHITE_ALPHA_100 } from '../../../../common/helpers/colors';
 import type { SpaceTimeChartContextType } from '../../../../spaceTimeChart';
 import { OCCUPANCY_SEPARATOR_WIDTH, OCCUPANCY_ZONE_HEIGHT } from '../../../lib/consts';
 import type { Linking, LinkingColors } from '../../../lib/types';
@@ -7,7 +7,7 @@ import { getOccupancyZonesY } from './drawOccupancyZones';
 const CAPSULE_HEIGHT = 9;
 const CAPSULE_RADIUS = 6;
 const CAPSULE_OPACITY = 0.5;
-const CAPSULE_FILL = WHITE_100;
+const CAPSULE_FILL = WHITE_ALPHA_100;
 const CAPSULE_BORDER_WIDTH = 1;
 const CAPSULE_OUTLINE_WIDTH = 4;
 const STRIPE_WIDTH = OCCUPANCY_ZONE_HEIGHT - OCCUPANCY_SEPARATOR_WIDTH;

@@ -2,8 +2,8 @@ import { sum } from 'lodash';
 
 import {
   SKY_700,
-  WHITE_100,
-  WHITE_50,
+  WHITE_ALPHA_100,
+  WHITE_ALPHA_50,
   PRIMARY_5,
   PRIMARY_30,
   GREY_20,
@@ -28,7 +28,7 @@ const drawRails = ({
   stroke: string;
   ctx: CanvasRenderingContext2D;
 }) => {
-  ctx.fillStyle = WHITE_100;
+  ctx.fillStyle = WHITE_ALPHA_100;
   ctx.fillRect(xStart, yStart, width, 9);
 
   ctx.fillStyle = fill;
@@ -79,7 +79,7 @@ export const drawTrack = ({
   labelMarks,
   highlighted,
 }: DrawTrackProps) => {
-  ctx.fillStyle = WHITE_50;
+  ctx.fillStyle = WHITE_ALPHA_50;
 
   ctx.save();
 
@@ -88,7 +88,7 @@ export const drawTrack = ({
     xStart: -1,
     yStart: TRACK_HEIGHT_CONTAINER / 2 - 4,
     width: width + 1,
-    fill: highlighted ? PRIMARY_5 : WHITE_50,
+    fill: highlighted ? PRIMARY_5 : WHITE_ALPHA_50,
     stroke: highlighted ? PRIMARY_30 : GREY_20,
   });
 
