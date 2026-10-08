@@ -1,6 +1,7 @@
 import type { DrawFunctionParams } from '../../../types';
 import { MARGINS } from '../../const';
 import { clearCanvas, maxPositionValue } from '../../utils';
+import { ZOOM_CONFIG } from '../../const';
 
 const { MARGIN_LEFT, MARGIN_BOTTOM, CURVE_MARGIN_SIDES } = MARGINS;
 
@@ -106,4 +107,7 @@ export const drawTickX = ({ ctx, width, height, store }: DrawFunctionParams) => 
   // prevent overlapping with margins left and right
   ctx.clearRect(0, 0, MARGIN_LEFT, height);
   ctx.clearRect(width, 0, width, height);
+  // prevent overlapping with slider
+  ctx.clearRect(width - ZOOM_CONFIG.SLIDER_WIDTH - 21, 0, width, height);
+
 };
