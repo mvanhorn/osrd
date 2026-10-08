@@ -35,6 +35,10 @@ export const SKY_700 = 'rgb(33 112 185 / 1)';
 
 export const BROWN_50 = 'rgb(138, 113, 75)';
 
+export const ERROR_60 = 'rgb(217, 28, 28)';
+
+export const WARNING_60 = 'rgb(125 82 30 / 1)';
+export const WARNING_30 = 'rgb(234, 167, 34)';
 /**
  * This function returns a unique hex color corresponding to the given index. The colors are
  * generated as #000001, #000002 ... #0000ff, #000100 etc.
