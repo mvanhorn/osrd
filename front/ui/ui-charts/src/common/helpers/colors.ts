@@ -2,14 +2,14 @@ import type { RGBColor } from '../types';
 
 // COLORS DEFINITIONS:
 export const BLACK_ALPHA_100 = 'rgb(0, 0, 0)';
-export const BLACK_ALPHA_70 = 'rgba(0, 0, 0, 0.70)';
-export const BLACK_ALPHA_55 = 'rgba(0, 0, 0, 0.55)';
-export const BLACK_ALPHA_50 = 'rgba(0, 0, 0, 0.5)';
-export const BLACK_ALPHA_25 = 'rgba(0, 0, 0, 0.25)';
-export const BLACK_ALPHA_10 = 'rgba(0, 0, 0, 0.1)';
+export const BLACK_ALPHA_70 = 'rgb(0 0 0 / 0.70)';
+export const BLACK_ALPHA_55 = 'rgb(0 0 0 / 0.55)';
+export const BLACK_ALPHA_50 = 'rgb(0 0 0 / 0.5)';
+export const BLACK_ALPHA_25 = 'rgb(0 0 0 / 0.25)';
+export const BLACK_ALPHA_10 = 'rgb(0 0 0 / 0.1)';
 
-export const AMBIENT_B_15 = 'rgba(242, 240, 228, 1)';
-export const AMBIENT_B_5 = 'rgba(250, 249, 245, 1)';
+export const AMBIENT_B_15 = 'rgb(242 240 228 / 1)';
+export const AMBIENT_B_5 = 'rgb(250 249 245 / 1)';
 
 export const GREY_90 = 'rgb(31, 27, 23)';
 export const GREY_80 = 'rgb(49, 46, 43)';
@@ -20,18 +20,18 @@ export const GREY_20 = 'rgb(211, 209, 207)';
 
 export const PRIMARY_80 = 'rgb(31, 15, 150)';
 export const PRIMARY_50 = 'rgb(37, 106, 250)';
-export const PRIMARY_40 = 'rgba(60, 138, 255, 1)';
-export const PRIMARY_30 = 'rgba(114, 168, 247, 1)';
-export const PRIMARY_5 = 'rgba(227, 237, 252, 1)';
+export const PRIMARY_40 = 'rgb(60 138 255 / 1)';
+export const PRIMARY_30 = 'rgb(114 168 247 / 1)';
+export const PRIMARY_5 = 'rgb(227 237 252 / 1)';
 
-export const CYAN_300 = 'rgba(105, 255, 254, 1)';
+export const CYAN_300 = 'rgb(105 255 254 / 1)';
 
 export const RED_100 = 'rgb(221, 34, 34)';
 
 export const WHITE_100 = 'rgb(255, 255, 255)';
-export const WHITE_50 = 'rgba(255, 255, 255, 0.50)';
+export const WHITE_50 = 'rgb(255 255 255 / 0.50)';
 
-export const SKY_700 = 'rgba(33, 112, 185, 1)';
+export const SKY_700 = 'rgb(33 112 185 / 1)';
 
 export const BROWN_50 = 'rgb(138, 113, 75)';
 
